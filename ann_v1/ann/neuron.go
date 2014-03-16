@@ -5,44 +5,65 @@ import (
 //	"math"
 )
 
-func NewNeuron (insignals int, outsignals int, learnrate float64, activationfunc func(float64)float64, derivativefunc func(float64)float64, inchan chan float64, outchan chan float64, downchan chan float64, upchan chan float64, cancelchan chan struct{}) {
-	neuroninput := make(chan float64)
-	neuronoutput := make(chan float64)
-	neurondown := make(chan float64)
-	neuronup := make(chan float64)
-
-	go Neuron (learnrate, activationfunc, derivativefunc, neuroninput, neuronoutput, neurondown, neuronup, cancelchan)
-	go Axon (outsignals, neuronoutput, outchan, cancelchan)
-	go Dendrite (insignals, inchan, neuroninput, cancelchan)
-	go Axon (insignals, neurondown, downchan, cancelchan)
-	go Dendrite (outsignals, neuronup, upchan, cancelchan)
+type Activation struct {
+	Function func(float64)float64
+	Derivative func(float64)float64
 }
 
-func Neuron (learnrate float64, activationfunc func(float64)float64, derivativefunc func(float64)float64, inputchan chan float64, outputchan chan float64, downfeed chan float64, upfeed chan float64, cancelchan chan struct{}) {
+type Peripherals struct {
+	Input chan float64
+	Output chan float64
+	Upfeed chan float64
+	Downfeed chan float64
+}
+
+
+func PushOrCancel (value float64, outchan chan float64, cancelchan chan struct{}) bool {
+	select {
+	case outchan <- value:
+		return true
+	case <- cancelchan:
+		return false
+	}
+}
+
+func PullOrCancel (inchan chan float64, cancelchan chan struct{}) (bool, float64) {
+	select {
+	case value := <- inchan:
+		return true, value
+	case <- cancelchan:
+		return false, 0
+	}
+}
+
+func NewNeuron (insignals int, outsignals int, learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
+
+	go Nucleus (learnrate, activation, internals, cancelchan)
+	go Axon (outsignals, internals.Output, peripherals.Output, cancelchan)
+	go Dendrite (insignals, peripherals.Input, internals.Input, cancelchan)
+	go Axon (insignals, internals.Downfeed, peripherals.Downfeed, cancelchan)
+	go Dendrite (outsignals, internals.Upfeed, peripherals.Upfeed, cancelchan)
+}
+
+func Nucleus (learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
 	var excitement float64
-	var inchan = inputchan
+	var inputchan = peripherals.Input
 	for {
 		select {
-		case input := <- inchan:
+		case input := <- inputchan:
 			excitement = input
-			select {
-			case outputchan <- activationfunc(excitement):
-				inchan = nil
-			case <- cancelchan:
-				return
-			}
-		case difference := <- upfeed:
-			select {
-			case downfeed <- difference:
-				select {
-				case downfeed <- learnrate * difference * derivativefunc(excitement):
-					inchan = inputchan
-				case <- cancelchan:
-					return
-				}
-			case <- cancelchan:
-				return
-			}
+			peripherals.Output <- activation.Function(excitement)
+			inputchan = nil
+		case errormargin := <- peripherals.Upfeed:
+			peripherals.Downfeed <- errormargin
+			peripherals.Downfeed <- learnrate * errormargin * activation.Derivative(excitement)
+			inputchan = peripherals.Input
 		case <- cancelchan:
 			return
 		}
@@ -58,12 +79,8 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 			signalcount++
 			sum = sum + input
 			if signalcount == signals {
-				select {
-				case outputchan <- sum:
-					sum = 0
-				case <- cancelchan:
-					return
-				}
+				outputchan <- sum
+				sum = 0
 			}
 		case <- cancelchan:
 			return
@@ -102,9 +119,9 @@ func Synapse (startweight float64, inputchan chan float64, outputchan chan float
 			case <- cancelchan:
 				return
 			}
-		case difference := <- upfeed:
+		case topmargin := <- upfeed:
 			select {
-			case downfeed <- difference * weight:
+			case downfeed <- topmargin * weight:
 				select {
 				case adjustment := <- upfeed:
 					weight = weight + (adjustment * output)
