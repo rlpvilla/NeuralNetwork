@@ -363,22 +363,22 @@ func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
 	}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return math.Pow(x, 2)},
-		Derivative: func (x float64) float64 {return 2*x},
+		Function: func (x float64) float64 {return 2*x},
+		Derivative: func (x float64) float64 {return 2},
 	}
 
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	
-	var learnrate float64 = 1
+	var learnrate float64 = 0.5
 	var timeout time.Duration = 2
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
 	go func() {
-		internals.Upfeed <- 1
+		internals.Upfeed <- 0.5
 		<- internals.Downfeed
 		result := <- internals.Downfeed
-		if result != 0 {
+		if result != 0.5 {
 			t.Log("Failure -  Nucleus compute derivative is inaccurate")
 			t.Log(result)
 			return

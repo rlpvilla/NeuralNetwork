@@ -40,7 +40,7 @@ func PullOrCancel (inchan chan float64, cancelchan chan struct{}) (bool, float64
 	}
 }
 
-func NewNeuron (synapses Synapses, learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
+func NewNeuron (learnrate float64, synapses Synapses, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
 	internals := Peripherals {
 		Input: make(chan float64),
 		Output: make(chan float64),
@@ -114,8 +114,8 @@ func Synapse (weight float64, peripherals Peripherals, cancelchan chan struct{})
 			output = input * weight
 			peripherals.Output <- output
 			inputchan = nil
-		case topmargin := <- peripherals.Upfeed:
-			peripherals.Downfeed <- topmargin * weight
+		case errormargin := <- peripherals.Upfeed:
+			peripherals.Downfeed <- errormargin * weight
 			adjustment := <- peripherals.Upfeed
 			weight = weight + (adjustment * output)
 			inputchan = peripherals.Input
