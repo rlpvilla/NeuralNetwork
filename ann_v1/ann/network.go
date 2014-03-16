@@ -4,3 +4,6 @@ import (
 
 )
 
+func Initialize () {
+
+}
