@@ -48,7 +48,7 @@ func NewNeuron (insignals int, outsignals int, learnrate float64, activation Act
 	go Axon (outsignals, internals.Output, peripherals.Output, cancelchan)
 	go Dendrite (insignals, peripherals.Input, internals.Input, cancelchan)
 	go Axon (insignals, internals.Downfeed, peripherals.Downfeed, cancelchan)
-	go Dendrite (outsignals, internals.Upfeed, peripherals.Upfeed, cancelchan)
+	go Dendrite (outsignals, peripherals.Upfeed, internals.Upfeed, cancelchan)
 }
 
 func Nucleus (learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
@@ -93,11 +93,7 @@ func Axon (signals int, inputchan chan float64, signalchan chan float64, cancelc
 		select {
 		case input := <- inputchan:
 			for i := 0; i < signals; i++ {
-				select {
-				case signalchan <- input:
-				case <- cancelchan:
-					return
-				}
+				signalchan <- input
 			}
 		case <- cancelchan:
 			return
@@ -113,25 +109,13 @@ func Synapse (startweight float64, inputchan chan float64, outputchan chan float
 		select {
 		case input := <- inchan:
 			output = input * weight
-			select {
-			case outputchan <- output:
-				inchan = nil
-			case <- cancelchan:
-				return
-			}
+			outputchan <- output
+			inchan = nil
 		case topmargin := <- upfeed:
-			select {
-			case downfeed <- topmargin * weight:
-				select {
-				case adjustment := <- upfeed:
-					weight = weight + (adjustment * output)
-					inchan = inputchan
-				case <- cancelchan:
-					return
-				}
-			case <- cancelchan:
-				return
-			}
+			downfeed <- topmargin * weight
+			adjustment := <- upfeed
+			weight = weight + (adjustment * output)
+			inchan = inputchan
 		case <- cancelchan:
 			return
 		}

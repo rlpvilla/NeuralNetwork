@@ -3,6 +3,7 @@ package ann
 import (
 	"testing"
 	"time"
+	"math"
 )
 
 func Test_Synapse_InputWorkflow (t *testing.T) {
@@ -161,29 +162,74 @@ func Test_Nucleus_InputWorkflow (t *testing.T) {
 		Upfeed: make(chan float64),
 		Downfeed: make(chan float64),
 	}
+
 	activation := Activation {
-		Function: func (x float64) {return 2*x},
-		Derivative: func (x float64) {return 2},
+		Function: func (x float64) float64 {return math.Pow(x, 2)},
+		Derivative: func (x float64) float64 {return 2*x},
 	}
+
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
+
 	var learnrate float64 = 1
 	var timeout time.Duration = 2
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
 	go func() {
-		inputchan <- 1
-		<- outputchan
+		internals.Input <- 1
+		<- internals.Output
 		resultchan <- struct{}{}
 		}()
 
 	select {
 	case <- time.After(timeout * time.Second):
-		t.Log("\nFailure - Synapse workflow timed out")
+		t.Log("\nFailure - Nucleus workflow timed out")
 		t.Fail()
 		return
 	case <- resultchan:
-		t.Log("\nSuccess - Synapse workflow is clear")
+		t.Log("\nSuccess - Nucleus workflow is clear")
+		return
+	}
+}
+
+func Test_Nucleus_InputComputeFunction (t *testing.T) {
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
+
+	activation := Activation {
+		Function: func (x float64) float64 {return math.Pow(x, 2)},
+		Derivative: func (x float64) float64 {return 2*x},
+	}
+
+	cancelchan := make(chan struct{})
+	resultchan := make(chan struct{})
+	
+	var learnrate float64 = 1
+	var timeout time.Duration = 2
+
+	go Nucleus (learnrate, activation, internals, cancelchan)
+	go func() {
+		internals.Input <- 4.8
+		result := <- internals.Output
+		if result != 23.04 {
+			t.Log("\nFailure -  Nucleus compute function is inaccurate")
+			t.Log(result)
+			return
+		}
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Second):
+		t.Log("\nFailure - Nucleus compute function timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("\nSuccess - Nucleus compute function is accurate")
 		return
 	}
 }
