@@ -101,21 +101,20 @@ func Axon (signals int, inputchan chan float64, signalchan chan float64, cancelc
 	}
 }
 
-func Synapse (startweight float64, inputchan chan float64, outputchan chan float64, downfeed chan float64, upfeed chan float64, cancelchan chan struct{}) {
-	var weight float64 = startweight
+func Synapse (weight float64, peripherals Peripherals, cancelchan chan struct{}) {
 	var output float64
-	var inchan chan float64 = inputchan
+	var inputchan chan float64 = peripherals.Input
 	for {
 		select {
-		case input := <- inchan:
+		case input := <- inputchan:
 			output = input * weight
-			outputchan <- output
-			inchan = nil
-		case topmargin := <- upfeed:
-			downfeed <- topmargin * weight
-			adjustment := <- upfeed
+			peripherals.Output <- output
+			inputchan = nil
+		case topmargin := <- peripherals.Upfeed:
+			peripherals.Downfeed <- topmargin * weight
+			adjustment := <- peripherals.Upfeed
 			weight = weight + (adjustment * output)
-			inchan = inputchan
+			inputchan = peripherals.Input
 		case <- cancelchan:
 			return
 		}

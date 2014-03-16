@@ -7,19 +7,21 @@ import (
 )
 
 func Test_Synapse_InputWorkflow (t *testing.T) {
-	inputchan := make(chan float64)
-	outputchan := make(chan float64)
-	downfeed := make(chan float64)
-	upfeed := make(chan float64)
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
 	var timeout time.Duration = 2
 
-	go Synapse (startweight, inputchan, outputchan, downfeed, upfeed, cancelchan)
+	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		inputchan <- 1
-		<- outputchan
+		internals.Input <- 1
+		<- internals.Output
 		resultchan <- struct{}{}
 		}()
 
@@ -35,19 +37,21 @@ func Test_Synapse_InputWorkflow (t *testing.T) {
 }
 
 func Test_Synapse_InputWeighting (t *testing.T) {
-	inputchan := make(chan float64)
-	outputchan := make(chan float64)
-	downfeed := make(chan float64)
-	upfeed := make(chan float64)
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 0.3
 	var timeout time.Duration = 1
 
-	go Synapse (startweight, inputchan, outputchan, downfeed, upfeed, cancelchan)
+	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		inputchan <- 1246
-		result := <- outputchan
+		internals.Input <- 1246
+		result := <- internals.Output
 		if result != 373.8 {
 			t.Log("\nFailure - Synapse weighting returned wrong value")
 			return
@@ -67,20 +71,22 @@ func Test_Synapse_InputWeighting (t *testing.T) {
 }
 
 func Test_Synapse_InputBlocking (t *testing.T) {
-	inputchan := make(chan float64)
-	outputchan := make(chan float64)
-	downfeed := make(chan float64)
-	upfeed := make(chan float64)
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
 	var timeout time.Duration = 1000
 
-	go Synapse (startweight, inputchan, outputchan, downfeed, upfeed, cancelchan)
+	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		inputchan <- 1
-		<- outputchan
-		inputchan <- 1
+		internals.Input <- 1
+		<- internals.Output
+		internals.Input <- 1
 		resultchan <- struct{}{}
 		}()
 
@@ -96,19 +102,21 @@ func Test_Synapse_InputBlocking (t *testing.T) {
 }
 
 func Test_Synapse_FeedbackWorkflow (t *testing.T) {
-	inputchan := make(chan float64)
-	outputchan := make(chan float64)
-	downfeed := make(chan float64)
-	upfeed := make(chan float64)
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
 	var timeout time.Duration = 10
 
-	go Synapse (startweight, inputchan, outputchan, downfeed, upfeed, cancelchan)
+	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		upfeed <- 1
-		<- downfeed
+		internals.Upfeed <- 1
+		<- internals.Downfeed
 		resultchan <- struct{}{}
 		}()
 
@@ -124,19 +132,21 @@ func Test_Synapse_FeedbackWorkflow (t *testing.T) {
 }
 
 func Test_Synapse_FeedbackMargin (t *testing.T) {
-	inputchan := make(chan float64)
-	outputchan := make(chan float64)
-	downfeed := make(chan float64)
-	upfeed := make(chan float64)
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 0.5
 	var timeout time.Duration = 10
 
-	go Synapse (startweight, inputchan, outputchan, downfeed, upfeed, cancelchan)
+	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		upfeed <- 0.25
-		result := <- downfeed
+		internals.Upfeed <- 0.25
+		result := <- internals.Downfeed
 		if result != .125 {
 			t.Log("\nFailure - Synapse weighting returned wrong value")
 			return
