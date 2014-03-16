@@ -1,7 +1,6 @@
 package ann
 
 import (
-//	"fmt"
 //	"math"
 )
 
