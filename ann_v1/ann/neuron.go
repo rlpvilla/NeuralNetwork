@@ -10,6 +10,11 @@ type Activation struct {
 	Derivative func(float64)float64
 }
 
+type Synapses struct {
+	Ingoing int
+	Outgoing int
+}
+
 type Peripherals struct {
 	Input chan float64
 	Output chan float64
@@ -36,7 +41,7 @@ func PullOrCancel (inchan chan float64, cancelchan chan struct{}) (bool, float64
 	}
 }
 
-func NewNeuron (insignals int, outsignals int, learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
+func NewNeuron (synapses Synapses, learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
 	internals := Peripherals {
 		Input: make(chan float64),
 		Output: make(chan float64),
@@ -45,10 +50,10 @@ func NewNeuron (insignals int, outsignals int, learnrate float64, activation Act
 	}
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
-	go Axon (outsignals, internals.Output, peripherals.Output, cancelchan)
-	go Dendrite (insignals, peripherals.Input, internals.Input, cancelchan)
-	go Axon (insignals, internals.Downfeed, peripherals.Downfeed, cancelchan)
-	go Dendrite (outsignals, peripherals.Upfeed, internals.Upfeed, cancelchan)
+	go Axon (synapses.Outgoing, internals.Output, peripherals.Output, cancelchan)
+	go Dendrite (synapses.Ingoing, peripherals.Input, internals.Input, cancelchan)
+	go Axon (synapses.Ingoing, internals.Downfeed, peripherals.Downfeed, cancelchan)
+	go Dendrite (synapses.Outgoing, peripherals.Upfeed, internals.Upfeed, cancelchan)
 }
 
 func Nucleus (learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
