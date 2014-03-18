@@ -2,7 +2,12 @@ package ann
 
 import (
 //	"math"
+	"time"
+	"fmt"
 )
+
+const devneuron bool = true
+const devsynapse bool = true
 
 type Activation struct {
 	Function func(float64)float64
@@ -53,6 +58,7 @@ func NewNeuron (learnrate float64, synapses Synapses, activation Activation, per
 	go Dendrite (synapses.Ingoing, peripherals.Input, internals.Input, cancelchan)
 	go Axon (synapses.Ingoing, internals.Downfeed, peripherals.Downfeed, cancelchan)
 	go Dendrite (synapses.Outgoing, peripherals.Upfeed, internals.Upfeed, cancelchan)
+	if devneuron {fmt.Printf("\n%v: Neuron initialized...\n", time.Now())}
 }
 
 func Nucleus (learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
@@ -61,12 +67,17 @@ func Nucleus (learnrate float64, activation Activation, peripherals Peripherals,
 	for {
 		select {
 		case input := <- inputchan:
+			if devneuron {fmt.Printf("\n%v: Nucleus received [%d]...\n", time.Now(), input)}
 			excitement = input
 			peripherals.Output <- activation.Function(excitement)
+			if devneuron {fmt.Printf("\n%v: Nucleus output [%d]...\n", time.Now(), activation.Function(excitement))}
 			inputchan = nil
 		case errormargin := <- peripherals.Upfeed:
+			if devneuron {fmt.Printf("\n%v: Nucleus upfed [%d]...\n", time.Now(), errormargin)}
 			peripherals.Downfeed <- errormargin
+			if devneuron {fmt.Printf("\n%v: Nucleus downfed [%d]...\n", time.Now(), errormargin)}
 			peripherals.Downfeed <- learnrate * errormargin * activation.Derivative(excitement)
+			if devneuron {fmt.Printf("\n%v: Nucleus received [%d]...\n", time.Now(), learnrate * errormargin * activation.Derivative(excitement))}
 			inputchan = peripherals.Input
 		case <- cancelchan:
 			return

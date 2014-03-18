@@ -1,12 +1,9 @@
-package ann
+package main
 
 import (
-	
+	"./ann"	
 )
 
-type SynapseDef struct {
-	Input chan float
-	Output chan float
-	Feedput chan float
-	StartWeight float
+func main () {
+	ann.Initialize(ann.TestSet)
 }
