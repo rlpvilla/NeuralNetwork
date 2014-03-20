@@ -741,3 +741,59 @@ func Test_Neuron_Input_Workflow (t *testing.T) {
 		return
 	}
 }
+
+func Test_Neuron_Input_Output (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 1; result := <- neuron.Output
+		if result != 2.718281828459045 {
+			t.Log("Failure - Neuron output is inaccurate")
+			return
+		}
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron output timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron output is accurate")
+		return
+	}
+}
+
+func Test_Neuron_Input_ (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 1; result := <- neuron.Output
+		if result != 2.718281828459045 {
+			t.Log("Failure - Neuron output is inaccurate")
+			return
+		}
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron output timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron output is accurate")
+		return
+	}
+}
