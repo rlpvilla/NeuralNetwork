@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-const devneuron bool = true
-const devsynapse bool = true
+const devneuron bool = false
+const devsynapse bool = false
 
 type Activation struct {
 	Function func(float64)float64

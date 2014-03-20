@@ -719,17 +719,25 @@ func Test_Dendrite_Summation (t *testing.T) {
 }
 
 func Test_Neuron_Input_Workflow (t *testing.T) {
-	cancelneurons := make(chan struct{})
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
 	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
 	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
 
-	NewNeuron(learningrate, synapses, activation, neuron, cancelneurons)
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 1; <- neuron.Output
+		resultchan <- struct{}{}
+	}()
 
 	select {
-	case neuron.Input <- 1:
-		if devnetwork {fmt.Printf("\n%v: Inputted...\n", time.Now())}
-		result := <- neuron.Output
-		if devnetwork {fmt.Printf("\n%v: Network output [%f]...\n", time.Now(), result)}
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron input workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron input workflow is clear")
+		return
 	}
 }
