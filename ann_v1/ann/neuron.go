@@ -88,7 +88,7 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 	for {
 		select {
 		case input := <- inputchan:
-			if devneuron {fmt.Printf("\n%v: Dendrite received signal [%i]...\n", time.Now(), input)}
+			if devneuron {fmt.Printf("\n%v: Dendrite received signal [%f]...\n", time.Now(), input)}
 			signalcount++
 			sum = sum + input
 			if signalcount == signals {
@@ -102,14 +102,13 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 }
 
 
-func Axon (signals int, inputchan chan float64, signalchan chan float64, cancelchan chan struct{}) {
+func Axon (signals int, inputchan chan float64, outputchan chan float64, cancelchan chan struct{}) {
 	for {
 		select {
 		case input := <- inputchan:
-			if devneuron {fmt.Printf("\n%v: Axon relayed signal [%i]...\n", time.Now(), input)}
 			for i := 0; i < signals; i++ {
-				signalchan <- input
-				if devneuron {fmt.Printf("\n%v: Axon relayed signal [%i]...\n", time.Now(), input)}
+				outputchan <- input
+				if devneuron {fmt.Printf("\n%v: Axon relayed signal [%f]...\n", time.Now(), input)}
 			}
 		case <- cancelchan:
 			return

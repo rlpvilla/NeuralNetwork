@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-const devnetwork bool = false
+const devnetwork bool = true
 
 var TestSet = Regimen {
 	TrainingSets: []TrainingSet {
@@ -32,7 +32,19 @@ type Regimen struct {
 }
 
 func Init () {
-	
+	cancelneurons := make(chan struct{})
+	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelneurons)
+
+	select {
+	case neuron.Input <- 1:
+		if devnetwork {fmt.Printf("\n%v: Inputted...\n", time.Now())}
+		result := <- neuron.Output
+		if devnetwork {fmt.Printf("\n%v: Network output [%f]...\n", time.Now(), result)}
+	}
 }
 
 func Initialize (regimen Regimen) {
