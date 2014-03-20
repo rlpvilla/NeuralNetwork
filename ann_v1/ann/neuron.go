@@ -63,22 +63,19 @@ func NewNeuron (learnrate float64, synapses Synapses, activation Activation, per
 
 func Nucleus (learnrate float64, activation Activation, peripherals Peripherals, cancelchan chan struct{}) {
 	var excitement float64
-	var inputchan = peripherals.Input
 	for {
 		select {
-		case input := <- inputchan:
-			if devneuron {fmt.Printf("\n%v: Nucleus received [%d]...\n", time.Now(), input)}
+		case input := <- peripherals.Input:
+			if devneuron {fmt.Printf("\n%v: Nucleus received [%f]...\n", time.Now(), input)}
 			excitement = input
 			peripherals.Output <- activation.Function(excitement)
-			if devneuron {fmt.Printf("\n%v: Nucleus output [%d]...\n", time.Now(), activation.Function(excitement))}
-			inputchan = nil
+			if devneuron {fmt.Printf("\n%v: Nucleus output [%f]...\n", time.Now(), activation.Function(excitement))}
 		case errormargin := <- peripherals.Upfeed:
-			if devneuron {fmt.Printf("\n%v: Nucleus upfed [%d]...\n", time.Now(), errormargin)}
+			if devneuron {fmt.Printf("\n%v: Nucleus upfed [%f]...\n", time.Now(), errormargin)}
 			peripherals.Downfeed <- errormargin
-			if devneuron {fmt.Printf("\n%v: Nucleus downfed [%d]...\n", time.Now(), errormargin)}
+			if devneuron {fmt.Printf("\n%v: Nucleus downfed [%f]...\n", time.Now(), errormargin)}
 			peripherals.Downfeed <- learnrate * errormargin * activation.Derivative(excitement)
-			if devneuron {fmt.Printf("\n%v: Nucleus received [%d]...\n", time.Now(), learnrate * errormargin * activation.Derivative(excitement))}
-			inputchan = peripherals.Input
+			if devneuron {fmt.Printf("\n%v: Nucleus received [%f]...\n", time.Now(), learnrate * errormargin * activation.Derivative(excitement))}
 		case <- cancelchan:
 			return
 		}
@@ -91,6 +88,7 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 	for {
 		select {
 		case input := <- inputchan:
+			if devneuron {fmt.Printf("\n%v: Dendrite received signal [%i]...\n", time.Now(), input)}
 			signalcount++
 			sum = sum + input
 			if signalcount == signals {
@@ -103,12 +101,15 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 	}
 }
 
+
 func Axon (signals int, inputchan chan float64, signalchan chan float64, cancelchan chan struct{}) {
 	for {
 		select {
 		case input := <- inputchan:
+			if devneuron {fmt.Printf("\n%v: Axon relayed signal [%i]...\n", time.Now(), input)}
 			for i := 0; i < signals; i++ {
 				signalchan <- input
+				if devneuron {fmt.Printf("\n%v: Axon relayed signal [%i]...\n", time.Now(), input)}
 			}
 		case <- cancelchan:
 			return
@@ -122,12 +123,17 @@ func Synapse (weight float64, peripherals Peripherals, cancelchan chan struct{})
 	for {
 		select {
 		case input := <- inputchan:
+			if devsynapse {fmt.Printf("\n%v: Synapse received input [%f]...\n", time.Now(), input)}
 			output = input * weight
 			peripherals.Output <- output
+			if devsynapse {fmt.Printf("\n%v: Synapse relayed signal [%f]...\n", time.Now(), output)}
 			inputchan = nil
 		case errormargin := <- peripherals.Upfeed:
+			if devsynapse {fmt.Printf("\n%v: Synapse received error margin [%f]...\n", time.Now(), errormargin)}
 			peripherals.Downfeed <- errormargin * weight
+			if devsynapse {fmt.Printf("\n%v: Synapse relayed margin [%f]...\n", time.Now(), errormargin * weight)}
 			adjustment := <- peripherals.Upfeed
+			if devsynapse {fmt.Printf("\n%v: Synapse received adjustment [%f]...\n", time.Now(), adjustment)}
 			weight = weight + (adjustment * output)
 			inputchan = peripherals.Input
 		case <- cancelchan:

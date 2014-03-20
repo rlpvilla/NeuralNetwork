@@ -5,5 +5,6 @@ import (
 )
 
 func main () {
-	ann.Initialize(ann.TestSet)
+	ann.Init()
+//	ann.Initialize(ann.TestSet)
 }

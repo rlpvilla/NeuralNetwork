@@ -31,6 +31,10 @@ type Regimen struct {
 	TrainingSets []TrainingSet
 }
 
+func Init () {
+	
+}
+
 func Initialize (regimen Regimen) {
 	if devnetwork {fmt.Printf("\n%v: Network initialized...\n", time.Now())}
 	cancelneurons := make(chan struct{}); cancelsynapses := make(chan struct{}); endtraining := make(chan struct{})
@@ -43,7 +47,7 @@ func Initialize (regimen Regimen) {
 	trainingchan := make(chan float64)
 	if devnetwork {fmt.Printf("\n%v: Network set up...\n", time.Now())}
 
-	NewNeuron(learningrate, synapses, activation, neuron, cancelneurons); go Synapse (0.75, synapse_1, cancelsynapses); go Synapse (0.25, synapse_2, cancelsynapses)
+	go NewNeuron(learningrate, synapses, activation, neuron, cancelneurons); go Synapse (0.75, synapse_1, cancelsynapses); go Synapse (0.25, synapse_2, cancelsynapses)
 	go StaticInput (1000, regimen, synapse_1, trainingchan, endtraining); go ErrorCatch (neuron, trainingchan, endtraining)
 	go func() {
 		if devnetwork {fmt.Printf("\n%v: Feeding bias...\n", time.Now())}
@@ -100,6 +104,7 @@ func StaticInput (cycles int, regimen Regimen, peripherals Peripherals, expectch
 		}
 		cycles--
 		if cycles < 0 {
+			if devnetwork {fmt.Printf("\n%v: Closing training session...\n")}
 			close(cancelchan)
 			return
 		}

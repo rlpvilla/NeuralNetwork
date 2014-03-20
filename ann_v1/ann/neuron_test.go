@@ -46,7 +46,7 @@ func Test_Synapse_Input_Weighting (t *testing.T) {
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 0.3
-	var timeout time.Duration = 1
+	var timeout time.Duration = 5
 
 	go Synapse (startweight, internals, cancelchan)
 	go func() {
@@ -175,12 +175,13 @@ func Test_Synapse_Loop_Workflow (t *testing.T) {
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
-	var timeout time.Duration = 10
+	var timeout time.Duration = 5
 
 	go Synapse (startweight, internals, cancelchan)
 	go func() {
 		internals.Input <- 0; <- internals.Output
 		internals.Upfeed <- 0; <- internals.Downfeed; internals.Upfeed <- 0
+		internals.Input <- 0; <- internals.Output
 		resultchan <- struct{}{}
 		}()
 
@@ -191,6 +192,45 @@ func Test_Synapse_Loop_Workflow (t *testing.T) {
 		return
 	case <- resultchan:
 		t.Log("Success - Synapse loop workflow is clear")
+		return
+	}
+}
+
+func Test_Synapse_Loop_WeightChange (t *testing.T) {
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
+	cancelchan := make(chan struct{})
+	resultchan := make(chan struct{})
+	var startweight float64 = 1
+	var timeout time.Duration = 5
+
+	go Synapse (startweight, internals, cancelchan)
+	go func() {
+		internals.Input <- 1; output := <- internals.Output
+		if output != 1 {
+			t.Log("Failure - Synapse weight change has broken context")
+			return
+		}
+		internals.Upfeed <- 0; <- internals.Downfeed; internals.Upfeed <- -0.3
+		internals.Input <- 1; result := <- internals.Output
+		if result != 0.7 {
+			t.Log("Failure - Synapse weight change is inaccurate")
+			return
+		}
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Synapse weight change timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Synapse weight change is accurate")
 		return
 	}
 }
@@ -329,7 +369,7 @@ func Test_Nucleus_Feedback_ErrorMargin (t *testing.T) {
 	resultchan := make(chan struct{})
 	
 	var learnrate float64 = 1
-	var timeout time.Duration = 2
+	var timeout time.Duration = 5
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
 	go func() {
@@ -371,7 +411,7 @@ func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
 	resultchan := make(chan struct{})
 	
 	var learnrate float64 = 0.5
-	var timeout time.Duration = 2
+	var timeout time.Duration = 5
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
 	go func() {
@@ -393,6 +433,287 @@ func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
 		return
 	case <- resultchan:
 		t.Log("Success - Nucleus compute derivative is accurate")
+		return
+	}
+}
+
+func Test_Nucleus_Loop_Workflow (t *testing.T) {
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
+
+	activation := Activation {
+		Function: func (x float64) float64 {return 2*x},
+		Derivative: func (x float64) float64 {return 2},
+	}
+
+	cancelchan := make(chan struct{})
+	resultchan := make(chan struct{})
+	
+	var learnrate float64 = 1
+	var timeout time.Duration = 5
+
+	go Nucleus (learnrate, activation, internals, cancelchan)
+	go func() {
+		internals.Input <- 0; <- internals.Output
+		internals.Upfeed <- 0; <- internals.Downfeed; <- internals.Downfeed
+		internals.Input <- 0; <- internals.Output
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Nucleus loop workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Nucleus loop workflow is clear")
+		return
+	}
+}
+
+func Test_Nucleus_Loop_ExcitementDependentDerivative (t *testing.T) {
+	internals := Peripherals {
+		Input: make(chan float64),
+		Output: make(chan float64),
+		Upfeed: make(chan float64),
+		Downfeed: make(chan float64),
+	}
+
+	activation := Activation {
+		Function: func (x float64) float64 {return 2*x},
+		Derivative: func (x float64) float64 {return x},
+	}
+
+	cancelchan := make(chan struct{})
+	resultchan := make(chan struct{})
+	
+	var learnrate float64 = 1
+	var timeout time.Duration = 5
+
+	go Nucleus (learnrate, activation, internals, cancelchan)
+	go func() {
+		internals.Input <- 0.5; <- internals.Output
+		internals.Upfeed <- 0.5; <- internals.Downfeed; result := <- internals.Downfeed
+		if result != 0.25 {
+			t.Log("Failure - Nucleus derivative independent of excitement")
+			return
+		}
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Nucleus derivative dependence timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Nucleus derivative is dependent on excitement")
+		return
+	}
+}
+
+func Test_Axon_Workflow (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 1; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Axon(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Axon workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Axon workflow is clear")
+		return
+	}
+}
+
+func Test_Axon_Block_ExcessInput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 3; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Axon(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; inputchan <- 0
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Axon with excess input timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Axon with excess input not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Axon_Block_InsufficientOutput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 3; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Axon(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan; <- outputchan; inputchan <- 0
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Axon with insufficient output timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Axon with insufficient output not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Axon_Block_ExcessOutput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 2; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Axon(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan; <- outputchan; <- outputchan
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Axon with excess output timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Axon with excess output not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Dendrite_Workflow (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 1; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Dendrite(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Dendrite workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Dendrite workflow is clear")
+		return
+	}
+}
+
+func Test_Dendrite_Block_ExcessOutput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 1; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Dendrite(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan; <- outputchan
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Dendrite with excess output timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Dendrite with excess output not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Dendrite_Block_InsufficientInput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 2; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Dendrite(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; <- outputchan
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Dendrite with insufficient input timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Dendrite with insufficient input not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Dendrite_Block_ExcessInput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 2; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Axon(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 0; inputchan <- 0; inputchan <- 0
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Dendrite with excess input timed out")
+		return
+	case <- resultchan:
+		t.Log("Failure - Dendrite with excess input not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Dendrite_Summation (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 5
+	signals := 4; inputchan := make(chan float64); outputchan := make(chan float64)
+
+	go Dendrite(signals, inputchan, outputchan, cancelchan)
+	go func() {
+		inputchan <- 1; inputchan <- 1; inputchan <- 1; inputchan <- 1
+		if result := <- outputchan; result != 4 {
+			t.Log("Failure - Dendrite summation inaccurate")
+			return
+		}
+		resultchan <- struct{}{}
+		}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Dendrite summation timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Dendrite summation is accurate")
 		return
 	}
 }
