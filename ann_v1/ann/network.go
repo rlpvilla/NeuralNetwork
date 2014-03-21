@@ -32,17 +32,22 @@ type Regimen struct {
 }
 
 func Init () {
-	cancelneuron := make(chan struct{})
-	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	cancelneuron := make(chan struct{}); cancelsynapse := make(chan struct{})
+	activation := Activation {Function: func (x float64) float64 {return 1/(1+math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1+math.Exp(-x))*(1 - 1/(1+math.Exp(-x)))}}
 	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
-	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+	synapse_1 := Peripherals {Input: make(chan float64), Output: neuron.Input, Upfeed: neuron.Downfeed, Downfeed: make(chan float64)}
+	synapse_2 := Peripherals {Input: make(chan float64), Output: neuron.Input, Upfeed: neuron.Downfeed, Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 2, Outgoing: 1}; learningrate := 0.1; startweight := 0.5
 
-	NewNeuron(learningrate, synapses, activation, neuron, cancelneuron)
+	NewNeuron(learningrate, synapses, activation, neuron, cancelneuron); go Synapse(startweight, synapse_1, cancelsynapse); go Synapse(startweight, synapse_2, cancelsynapse)
 
 	select {
-	case neuron.Input <- 1:
-		result := <- neuron.Output
-		if devnetwork {fmt.Printf("\n%v: Network output [%f]...\n", time.Now(), result)}
+	case synapse_1.Input <- 1:
+		synapse_2.Input <- 1
+		<- neuron.Output
+		neuron.Upfeed <- 1
+		result := <- synapse_1.Downfeed
+		fmt.Printf("\nError margin for synapse 1 [%f]...\n", result)
 	}
 }
 

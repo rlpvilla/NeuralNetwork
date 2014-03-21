@@ -3,16 +3,10 @@ package ann
 import (
 	"testing"
 	"time"
-	"math"
 )
 
 func Test_Synapse_Input_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
@@ -20,8 +14,7 @@ func Test_Synapse_Input_Workflow (t *testing.T) {
 
 	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		internals.Input <- 1
-		<- internals.Output
+		internals.Input <- 1; <- internals.Output
 		resultchan <- struct{}{}
 		}()
 
@@ -37,8 +30,7 @@ func Test_Synapse_Input_Workflow (t *testing.T) {
 }
 
 func Test_Synapse_Input_Weighting (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
+	internals := Peripherals {Input: make(chan float64),
 		Output: make(chan float64),
 		Upfeed: make(chan float64),
 		Downfeed: make(chan float64),
@@ -71,12 +63,7 @@ func Test_Synapse_Input_Weighting (t *testing.T) {
 }
 
 func Test_Synapse_Input_Blocking (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
@@ -84,9 +71,7 @@ func Test_Synapse_Input_Blocking (t *testing.T) {
 
 	go Synapse (startweight, internals, cancelchan)
 	go func() {
-		internals.Input <- 1
-		<- internals.Output
-		internals.Input <- 1
+		internals.Input <- 1; <- internals.Output; internals.Input <- 1
 		resultchan <- struct{}{}
 		}()
 
@@ -102,12 +87,7 @@ func Test_Synapse_Input_Blocking (t *testing.T) {
 }
 
 func Test_Synapse_Feedback_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
@@ -132,12 +112,7 @@ func Test_Synapse_Feedback_Workflow (t *testing.T) {
 }
 
 func Test_Synapse_Feedback_ErrorMargin (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 0.5
@@ -166,12 +141,7 @@ func Test_Synapse_Feedback_ErrorMargin (t *testing.T) {
 }
 
 func Test_Synapse_Loop_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
@@ -197,12 +167,7 @@ func Test_Synapse_Loop_Workflow (t *testing.T) {
 }
 
 func Test_Synapse_Loop_WeightChange (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
 	var startweight float64 = 1
@@ -236,16 +201,11 @@ func Test_Synapse_Loop_WeightChange (t *testing.T) {
 }
 
 func Test_Nucleus_Input_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return math.Pow(x, 2)},
-		Derivative: func (x float64) float64 {return 2*x},
+		Function: Sigmoid,
+		Derivative: SigmoidDerivative,
 	}
 
 	cancelchan := make(chan struct{})
@@ -273,16 +233,11 @@ func Test_Nucleus_Input_Workflow (t *testing.T) {
 }
 
 func Test_Nucleus_Input_ComputeFunction (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return math.Pow(x, 2)},
-		Derivative: func (x float64) float64 {return 2*x},
+		Function: Sigmoid,
+		Derivative: SigmoidDerivative,
 	}
 
 	cancelchan := make(chan struct{})
@@ -293,9 +248,9 @@ func Test_Nucleus_Input_ComputeFunction (t *testing.T) {
 
 	go Nucleus (learnrate, activation, internals, cancelchan)
 	go func() {
-		internals.Input <- 4.8
+		internals.Input <- 0.5
 		result := <- internals.Output
-		if result != 23.04 {
+		if result != 0.6224593312018546 {
 			t.Log("Failure -  Nucleus compute function is inaccurate")
 			t.Log(result)
 			return
@@ -315,16 +270,11 @@ func Test_Nucleus_Input_ComputeFunction (t *testing.T) {
 }
 
 func Test_Nucleus_Feedback_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return math.Pow(x, 2)},
-		Derivative: func (x float64) float64 {return 2*x},
+		Function: Sigmoid,
+		Derivative: SigmoidDerivative,
 	}
 
 	cancelchan := make(chan struct{})
@@ -353,16 +303,11 @@ func Test_Nucleus_Feedback_Workflow (t *testing.T) {
 }
 
 func Test_Nucleus_Feedback_ErrorMargin (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return math.Pow(x, 2)},
-		Derivative: func (x float64) float64 {return 2*x},
+		Function: Sigmoid,
+		Derivative: SigmoidDerivative,
 	}
 
 	cancelchan := make(chan struct{})
@@ -395,16 +340,11 @@ func Test_Nucleus_Feedback_ErrorMargin (t *testing.T) {
 }
 
 func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
 	activation := Activation {
-		Function: func (x float64) float64 {return 2*x},
-		Derivative: func (x float64) float64 {return 2},
+		Function: Sigmoid,
+		Derivative: SigmoidDerivative,
 	}
 
 	cancelchan := make(chan struct{})
@@ -418,7 +358,7 @@ func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
 		internals.Upfeed <- 0.5
 		<- internals.Downfeed
 		result := <- internals.Downfeed
-		if result != 0.5 {
+		if result != 0.0625 {
 			t.Log("Failure -  Nucleus compute derivative is inaccurate")
 			t.Log(result)
 			return
@@ -438,17 +378,9 @@ func Test_Nucleus_Feedback_ComputeDerivative (t *testing.T) {
 }
 
 func Test_Nucleus_Loop_Workflow (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
-	activation := Activation {
-		Function: func (x float64) float64 {return 2*x},
-		Derivative: func (x float64) float64 {return 2},
-	}
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
 
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
@@ -476,17 +408,9 @@ func Test_Nucleus_Loop_Workflow (t *testing.T) {
 }
 
 func Test_Nucleus_Loop_ExcitementDependentDerivative (t *testing.T) {
-	internals := Peripherals {
-		Input: make(chan float64),
-		Output: make(chan float64),
-		Upfeed: make(chan float64),
-		Downfeed: make(chan float64),
-	}
+	internals := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 
-	activation := Activation {
-		Function: func (x float64) float64 {return 2*x},
-		Derivative: func (x float64) float64 {return x},
-	}
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
 
 	cancelchan := make(chan struct{})
 	resultchan := make(chan struct{})
@@ -498,8 +422,9 @@ func Test_Nucleus_Loop_ExcitementDependentDerivative (t *testing.T) {
 	go func() {
 		internals.Input <- 0.5; <- internals.Output
 		internals.Upfeed <- 0.5; <- internals.Downfeed; result := <- internals.Downfeed
-		if result != 0.25 {
+		if result != 0.11750185610079725 {
 			t.Log("Failure - Nucleus derivative independent of excitement")
+			t.Log(result)
 			return
 		}
 		resultchan <- struct{}{}
@@ -718,10 +643,10 @@ func Test_Dendrite_Summation (t *testing.T) {
 	}
 }
 
-func Test_Neuron_Input_Workflow (t *testing.T) {
+func Test_Neuron_Feedforward_Workflow (t *testing.T) {
 	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
 	var timeout time.Duration = 10
-	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
 	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
 
@@ -742,18 +667,19 @@ func Test_Neuron_Input_Workflow (t *testing.T) {
 	}
 }
 
-func Test_Neuron_Input_Output (t *testing.T) {
+func Test_Neuron_Feedforward_Output (t *testing.T) {
 	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
 	var timeout time.Duration = 10
-	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
 	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
 
 	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
 	go func() {
 		neuron.Input <- 1; result := <- neuron.Output
-		if result != 2.718281828459045 {
+		if result != 0.7310585786300049 {
 			t.Log("Failure - Neuron output is inaccurate")
+			t.Log(result)
 			return
 		}
 		resultchan <- struct{}{}
@@ -770,18 +696,115 @@ func Test_Neuron_Input_Output (t *testing.T) {
 	}
 }
 
-func Test_Neuron_Input_ (t *testing.T) {
+func Test_Neuron_Feedforward_InsufficientInput (t *testing.T) {
 	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
 	var timeout time.Duration = 10
-	activation := Activation {Function: func (x float64) float64 {return 1/(1*math.Exp(-x))}, Derivative: func (x float64) float64 {return 1/(1*math.Exp(-x)) *(1 - 1/(1*math.Exp(-x)))}}
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 2, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 0; <- neuron.Output
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Neuron with insufficient input blocked")
+		return
+	case <- resultchan:
+		t.Log("Failure - Neuron with insufficient input is not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Neuron_Feedforward_ExcessOutput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
 	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
 	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
 
 	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
 	go func() {
-		neuron.Input <- 1; result := <- neuron.Output
-		if result != 2.718281828459045 {
-			t.Log("Failure - Neuron output is inaccurate")
+		neuron.Input <- 0; <- neuron.Output; <- neuron.Output; neuron.Input <- 0
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Neuron with excess output blocked")
+		return
+	case <- resultchan:
+		t.Log("Failure - Neuron with excess output is not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Neuron_Feedforward_ExcessInput (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 0; neuron.Input <- 0; neuron.Input <- 0; neuron.Input <- 0; <- neuron.Output
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Success - Neuron with excess input is blocked")
+		return
+	case <- resultchan:
+		t.Log("Failure - Neuron with excess input is not blocked")
+		t.Fail()
+		return
+	}
+}
+
+func Test_Neuron_Feedback_Workflow (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Upfeed <- 0; <- neuron.Downfeed
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron feedback workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron feedback workflow is clear")
+		return
+	}
+}
+
+func Test_Neuron_Feedback_ErrorMargin (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Upfeed <- 0.5; result := <- neuron.Downfeed
+		if result != 0.5 {
+			t.Log("Failure - Neuron feedback error margin inaccurate")
+			t.Log(result)
 			return
 		}
 		resultchan <- struct{}{}
@@ -789,11 +812,91 @@ func Test_Neuron_Input_ (t *testing.T) {
 
 	select {
 	case <- time.After(timeout * time.Millisecond):
-		t.Log("Failure - Neuron output timed out")
+		t.Log("Failure - Neuron feedback error margin timed out")
 		t.Fail()
 		return
 	case <- resultchan:
-		t.Log("Success - Neuron output is accurate")
+		t.Log("Success - Neuron feedback error margin is accurate")
+		return
+	}
+}
+
+func Test_Neuron_Feedback_Adjustment (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.5
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 1; neuron.Upfeed <- 0.5; <- neuron.Downfeed; result := <- neuron.Downfeed
+		if result != 0.04915298331037046 {
+			t.Log("Failure - Neuron feedback adjustment inaccurate")
+			t.Log(result)
+			return
+		}
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron feedback adjustment timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron feedback adjustment is accurate")
+		return
+	}
+}
+
+func Test_Neuron_Loop_Workflow (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 0.5
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 0; <- neuron.Output
+		neuron.Upfeed <- 0; <- neuron.Downfeed; <- neuron.Downfeed
+		neuron.Input <- 0; <- neuron.Output
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron loop workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron loop workflow is clear")
+		return
+	}
+}
+
+func Test_Neuron_Loop_Workflow (t *testing.T) {
+	cancelchan := make(chan struct{}); resultchan := make(chan struct{})
+	var timeout time.Duration = 10
+	activation := Activation {Function: Sigmoid, Derivative: SigmoidDerivative}
+	neuron := Peripherals {Input: make(chan float64), Output: make(chan float64), Upfeed: make(chan float64), Downfeed: make(chan float64)}
+	synapses := Synapses {Ingoing: 1, Outgoing: 1}; learningrate := 1
+
+	NewNeuron(learningrate, synapses, activation, neuron, cancelchan)
+	go func() {
+		neuron.Input <- 0; <- neuron.Output
+		neuron.Upfeed <- 0; <- neuron.Downfeed; <- neuron.Downfeed
+		resultchan <- struct{}{}
+	}()
+
+	select {
+	case <- time.After(timeout * time.Millisecond):
+		t.Log("Failure - Neuron loop workflow timed out")
+		t.Fail()
+		return
+	case <- resultchan:
+		t.Log("Success - Neuron loop workflow is clear")
 		return
 	}
 }

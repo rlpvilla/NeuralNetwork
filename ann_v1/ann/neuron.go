@@ -1,13 +1,16 @@
 package ann
 
 import (
-//	"math"
+	"math"
 	"time"
 	"fmt"
 )
 
 const devneuron bool = false
 const devsynapse bool = false
+
+var Sigmoid func(float64)float64 = func (x float64) float64 {return 1/(1+math.Exp(-x))}
+var SigmoidDerivative func(float64)float64 = func (x float64) float64 {return 1/(1+math.Exp(-x))*(1-1/(1+math.Exp(-x)))}
 
 type Activation struct {
 	Function func(float64)float64
@@ -68,6 +71,7 @@ func Nucleus (learnrate float64, activation Activation, peripherals Peripherals,
 		case input := <- peripherals.Input:
 			if devneuron {fmt.Printf("\n%v: Nucleus received [%f]...\n", time.Now(), input)}
 			excitement = input
+			if devneuron {fmt.Printf("\n%v: Nucleus excitement [%f]...\n", time.Now(), activation.Function(excitement))}
 			peripherals.Output <- activation.Function(excitement)
 			if devneuron {fmt.Printf("\n%v: Nucleus output [%f]...\n", time.Now(), activation.Function(excitement))}
 		case errormargin := <- peripherals.Upfeed:
@@ -92,8 +96,10 @@ func Dendrite (signals int, inputchan chan float64, outputchan chan float64, can
 			signalcount++
 			sum = sum + input
 			if signalcount == signals {
+				if devneuron {fmt.Printf("\n%v: Dendrite relayed signal [%f]...\n", time.Now(), sum)}
 				outputchan <- sum
 				sum = 0
+				signalcount = 0
 			}
 		case <- cancelchan:
 			return
